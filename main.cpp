@@ -1,4 +1,4 @@
-#include <ctime>
+﻿#include <ctime>
 #include <iostream>
 #include <string>
 
@@ -7,7 +7,6 @@
 static std::string currentTimestamp() {
     const std::time_t now = std::time(nullptr);
     char buf[32]{};
-    localtime_s(nullptr, &now); // MSVC 안전 버전 활성화
     struct tm tm_info {};
     localtime_s(&tm_info, &now);
     std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm_info);
