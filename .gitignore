@@ -10,6 +10,7 @@ Release/
 
 # 런타임 생성 데이터 파일 (영속성 저장 결과)
 persistent_data.txt
+persistent_data.json
 
 # Visual Studio 임시 파일
 .vs/

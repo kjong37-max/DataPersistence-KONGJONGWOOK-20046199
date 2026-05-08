@@ -20,7 +20,7 @@ static void printList(const std::vector<Record>& records) {
     }
     printSeparator();
     for (const auto& r : records)
-        std::cout << "  [" << r.id << "] " << r.name << " — " << r.value << '\n';
+        std::cout << "  [" << r.id << "] " << r.name << " \xE2\x80\x94 " << r.value << '\n';
     printSeparator();
 }
 
@@ -45,16 +45,28 @@ static int readInt(const std::string& prompt) {
     }
 }
 
+static std::string selectDataFile() {
+    std::cout << "================================\n"
+              << " 데이터 영속성 CRUD PoC\n"
+              << "================================\n"
+              << "저장 형식을 선택하세요:\n"
+              << "  1. TXT  (persistent_data.txt)\n"
+              << "  2. JSON (persistent_data.json)\n"
+              << "선택 > ";
+    std::string line;
+    std::getline(std::cin, line);
+    return (line == "2") ? "persistent_data.json" : "persistent_data.txt";
+}
+
 int main() {
-    constexpr auto DATA_FILE = "persistent_data.txt";
+    const std::string DATA_FILE = selectDataFile();
+    const bool        isJson    = DATA_FILE.ends_with(".json");
 
     RecordStore store(DATA_FILE);
     store.load();
 
-    std::cout << "================================\n"
-              << " 데이터 영속성 CRUD PoC\n"
-              << "================================\n"
-              << "저장 파일 : " << DATA_FILE << '\n'
+    std::cout << "\n저장 파일 : " << DATA_FILE << '\n'
+              << "저장 형식 : " << (isJson ? "JSON" : "TXT") << '\n'
               << "레코드 수 : " << store.readAll().size() << "개\n";
 
     int choice = -1;
@@ -111,7 +123,6 @@ int main() {
         case 4: {
             const int id = readInt("  수정할 ID > ");
             if (const auto* r = store.findById(id)) {
-                // 포인터 무효화 방지를 위해 값 복사
                 const std::string oldName  = r->name;
                 const std::string oldValue = r->value;
                 std::cout << "  현재 제목: " << oldName  << '\n'
@@ -133,9 +144,9 @@ int main() {
         case 5: {
             const int id = readInt("  삭제할 ID > ");
             if (const auto* r = store.findById(id)) {
-                const std::string name = r->name;  // 포인터 무효화 방지
+                const std::string name = r->name;
                 std::cout << "  [" << id << "] " << name
-                          << " — 삭제하시겠습니까? (y/N) > ";
+                          << " \xE2\x80\x94 삭제하시겠습니까? (y/N) > ";
                 std::string confirm; std::getline(std::cin, confirm);
                 if (confirm == "y" || confirm == "Y") {
                     store.remove(id);

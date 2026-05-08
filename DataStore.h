@@ -3,7 +3,9 @@
 #include <unordered_map>
 #include <vector>
 
-// key=value 텍스트 파일로 데이터를 영속 저장하는 단순 저장소
+enum class StoreFormat { TXT, JSON };
+
+// 파일 확장자(.txt / .json)로 형식을 자동 감지하는 key=value 영속 저장소
 class DataStore {
 public:
     explicit DataStore(const std::string& filePath);
@@ -17,9 +19,20 @@ public:
     void                     remove(const std::string& key);
     std::vector<std::string> keys() const;
 
+    StoreFormat format() const;
+
     void printAll() const;
 
 private:
     std::string                                  m_filePath;
+    StoreFormat                                  m_format;
     std::unordered_map<std::string, std::string> m_data;
+
+    void loadTxt();
+    void loadJson();
+    void saveTxt()  const;
+    void saveJson() const;
+
+    static StoreFormat detectFormat(const std::string& filePath);
+    static std::string jsonEscape(const std::string& s);
 };
