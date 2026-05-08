@@ -1,0 +1,17 @@
+# 빌드 산출물
+x64/
+Win32/
+Debug/
+Release/
+*.obj
+*.pdb
+*.ilk
+*.exe
+
+# 런타임 생성 데이터 파일 (영속성 저장 결과)
+persistent_data.txt
+
+# Visual Studio 임시 파일
+.vs/
+*.VC.db
+*.VC.opendb
