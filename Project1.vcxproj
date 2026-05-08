@@ -129,10 +129,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DataStore.cpp" />
+    <ClCompile Include="RecordStore.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DataStore.h" />
+    <ClInclude Include="RecordStore.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="persistent_data.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

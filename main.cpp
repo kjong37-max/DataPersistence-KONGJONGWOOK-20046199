@@ -1,76 +1,150 @@
-﻿#include <ctime>
 #include <iostream>
 #include <string>
+#include <vector>
+#include "RecordStore.h"
 
-#include "DataStore.h"
+static void printSeparator() {
+    std::cout << "  " << std::string(46, '-') << '\n';
+}
 
-static std::string currentTimestamp() {
-    const std::time_t now = std::time(nullptr);
-    char buf[32]{};
-    struct tm tm_info {};
-    localtime_s(&tm_info, &now);
-    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm_info);
-    return buf;
+static void printRecord(const Record& r) {
+    std::cout << "  ID   : " << r.id    << '\n'
+              << "  제목 : " << r.name  << '\n'
+              << "  내용 : " << r.value << '\n';
+}
+
+static void printList(const std::vector<Record>& records) {
+    if (records.empty()) {
+        std::cout << "  (항목 없음)\n";
+        return;
+    }
+    printSeparator();
+    for (const auto& r : records)
+        std::cout << "  [" << r.id << "] " << r.name << " — " << r.value << '\n';
+    printSeparator();
 }
 
 static void printMenu() {
     std::cout << "\n[메뉴]\n"
-                 "  1. 전체 조회\n"
-                 "  2. 데이터 저장\n"
-                 "  3. 데이터 삭제\n"
+                 "  1. 전체 목록 보기   (Read All)\n"
+                 "  2. 검색             (Read by ID / 키워드)\n"
+                 "  3. 새 항목 추가     (Create)\n"
+                 "  4. 항목 수정        (Update)\n"
+                 "  5. 항목 삭제        (Delete)\n"
                  "  0. 저장 후 종료\n"
                  "선택 > ";
+}
+
+static int readInt(const std::string& prompt) {
+    while (true) {
+        std::cout << prompt;
+        std::string line;
+        std::getline(std::cin, line);
+        try { return std::stoi(line); }
+        catch (...) { std::cout << "  숫자를 입력하세요.\n"; }
+    }
 }
 
 int main() {
     constexpr auto DATA_FILE = "persistent_data.txt";
 
-    DataStore store(DATA_FILE);
+    RecordStore store(DATA_FILE);
     store.load();
 
-    // 실행 횟수 및 마지막 실행 시각 자동 갱신
-    const int runCount = std::stoi(store.get("__run_count__", "0")) + 1;
-    store.set("__run_count__", std::to_string(runCount));
-    store.set("__last_run__", currentTimestamp());
-
-    std::cout << "============================\n"
-              << " 데이터 영속성 PoC\n"
-              << "============================\n"
+    std::cout << "================================\n"
+              << " 데이터 영속성 CRUD PoC\n"
+              << "================================\n"
               << "저장 파일 : " << DATA_FILE << '\n'
-              << "실행 횟수 : " << runCount << "회\n"
-              << "최근 실행 : " << store.get("__last_run__") << '\n';
+              << "레코드 수 : " << store.readAll().size() << "개\n";
 
     int choice = -1;
     while (choice != 0) {
         printMenu();
-        std::cin >> choice;
-        std::cin.ignore();
+        std::string line;
+        std::getline(std::cin, line);
+        try { choice = std::stoi(line); } catch (...) { choice = -1; }
 
         switch (choice) {
+
+        // ── Read All ─────────────────────────────────────
         case 1:
             std::cout << '\n';
-            store.printAll();
+            printList(store.readAll());
             break;
 
+        // ── Read (Search) ────────────────────────────────
         case 2: {
-            std::string key, value;
-            std::cout << "  키   > "; std::getline(std::cin, key);
-            std::cout << "  값   > "; std::getline(std::cin, value);
-            if (!key.empty()) {
-                store.set(key, value);
-                std::cout << "  저장 완료.\n";
+            std::cout << "  ID 검색(1) / 키워드 검색(2) > ";
+            std::string sub; std::getline(std::cin, sub);
+
+            if (sub == "1") {
+                const int id = readInt("  ID > ");
+                if (const auto* r = store.findById(id)) {
+                    std::cout << '\n'; printRecord(*r);
+                } else {
+                    std::cout << "  ID " << id << "를 찾을 수 없습니다.\n";
+                }
+            } else if (sub == "2") {
+                std::cout << "  키워드 > ";
+                std::string kw; std::getline(std::cin, kw);
+                std::cout << '\n';
+                printList(store.findByKeyword(kw));
             }
             break;
         }
 
+        // ── Create ───────────────────────────────────────
         case 3: {
-            std::string key;
-            std::cout << "  삭제할 키 > "; std::getline(std::cin, key);
-            if (store.has(key)) {
-                store.remove(key);
-                std::cout << "  삭제 완료.\n";
+            std::string name, value;
+            std::cout << "  제목 > "; std::getline(std::cin, name);
+            std::cout << "  내용 > "; std::getline(std::cin, value);
+            if (name.empty()) {
+                std::cout << "  제목은 비워둘 수 없습니다.\n";
             } else {
-                std::cout << "  키를 찾을 수 없습니다.\n";
+                const int id = store.create(name, value);
+                std::cout << "  추가 완료 (ID: " << id << ")\n";
+            }
+            break;
+        }
+
+        // ── Update ───────────────────────────────────────
+        case 4: {
+            const int id = readInt("  수정할 ID > ");
+            if (const auto* r = store.findById(id)) {
+                // 포인터 무효화 방지를 위해 값 복사
+                const std::string oldName  = r->name;
+                const std::string oldValue = r->value;
+                std::cout << "  현재 제목: " << oldName  << '\n'
+                          << "  현재 내용: " << oldValue << '\n';
+                std::string newName, newValue;
+                std::cout << "  새 제목 (Enter = 유지) > "; std::getline(std::cin, newName);
+                std::cout << "  새 내용 (Enter = 유지) > "; std::getline(std::cin, newValue);
+                store.update(id,
+                    newName.empty()  ? oldName  : newName,
+                    newValue.empty() ? oldValue : newValue);
+                std::cout << "  수정 완료.\n";
+            } else {
+                std::cout << "  ID " << id << "를 찾을 수 없습니다.\n";
+            }
+            break;
+        }
+
+        // ── Delete ───────────────────────────────────────
+        case 5: {
+            const int id = readInt("  삭제할 ID > ");
+            if (const auto* r = store.findById(id)) {
+                const std::string name = r->name;  // 포인터 무효화 방지
+                std::cout << "  [" << id << "] " << name
+                          << " — 삭제하시겠습니까? (y/N) > ";
+                std::string confirm; std::getline(std::cin, confirm);
+                if (confirm == "y" || confirm == "Y") {
+                    store.remove(id);
+                    std::cout << "  삭제 완료.\n";
+                } else {
+                    std::cout << "  취소되었습니다.\n";
+                }
+            } else {
+                std::cout << "  ID " << id << "를 찾을 수 없습니다.\n";
             }
             break;
         }
@@ -84,8 +158,7 @@ int main() {
     }
 
     store.save();
-    std::cout << "\n데이터가 '" << DATA_FILE
-              << "'에 저장되었습니다.\n"
+    std::cout << "\n데이터가 '" << DATA_FILE << "'에 저장되었습니다.\n"
                  "다음 실행 시 자동으로 복원됩니다.\n";
 
     return 0;

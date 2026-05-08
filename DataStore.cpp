@@ -1,4 +1,4 @@
-#include "DataStore.h"
+﻿#include "DataStore.h"
 
 #include <fstream>
 #include <iostream>
@@ -38,6 +38,14 @@ bool DataStore::has(const std::string& key) const {
 
 void DataStore::remove(const std::string& key) {
     m_data.erase(key);
+}
+
+std::vector<std::string> DataStore::keys() const {
+    std::vector<std::string> result;
+    result.reserve(m_data.size());
+    for (const auto& [key, _] : m_data)
+        result.push_back(key);
+    return result;
 }
 
 void DataStore::printAll() const {
